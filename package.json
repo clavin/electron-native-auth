@@ -1,0 +1,23 @@
+{
+  "name": "electron-native-auth",
+  "version": "0.1.0",
+  "main": "index.js",
+  "repository": "https://github.com/clavin/electron-native-auth",
+  "author": "Calvin Watford",
+  "license": "MIT",
+  "scripts": {
+    "build": "node-gyp rebuild",
+    "clean": "node-gyp clean",
+    "test": "jest",
+    "gen-compile-cmds": "node-gyp -- configure -f=gyp.generator.compile_commands_json.py && mv Debug/compile_commands.json ./compile_commands.json"
+  },
+  "dependencies": {
+    "bindings": "^1.5.0",
+    "node-addon-api": "^5.0.0",
+    "node-gyp": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "*",
+    "jest": "^28.1.0"
+  }
+}

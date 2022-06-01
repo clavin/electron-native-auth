@@ -1,0 +1,6 @@
+node_modules/
+build/
+Release/
+Debug/
+.cache/
+compile_commands.json
