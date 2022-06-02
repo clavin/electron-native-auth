@@ -93,8 +93,17 @@ void PromptAuthentication(Napi::String url,
 
             // Handle error
             if (error != NULL) {
-              util::RejectWithError(env, blockPromise,
-                                    "todo: auth error message");
+              auto err = Napi::Error::New(env);
+
+              // Set the message and code on the error
+              err.Set("message",
+                      Napi::String::New(
+                          env, [[error localizedDescription] UTF8String]));
+              err.Set("code", Napi::Number::New(env, [error code]));
+
+              // Reject with the error
+              blockPromise.Reject(err.Value());
+
               return;
             } else {
               util::RejectWithError(env, blockPromise, err::kUnknownError);
