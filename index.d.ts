@@ -3,6 +3,7 @@
  */
 export function promptAuthentication(
   url: string,
+  callbackScheme: string,
   windowHandle: import("node:buffer").Buffer
 ): Promise<string>;
 

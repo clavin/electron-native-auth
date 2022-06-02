@@ -7,6 +7,7 @@ bool IsAvailable() {
 }
 
 void PromptAuthentication(Napi::String url,
+                          Napi::String callbackScheme,
                           Napi::Buffer<void*> windowHandle,
                           Napi::Env env,
                           Napi::Promise::Deferred promise) {

@@ -11,28 +11,35 @@ Napi::Value PromptAuthentication(const Napi::CallbackInfo& cbInfo) {
   Napi::Env env = cbInfo.Env();
 
   // Ensure we were passed enough arguments
-  if (cbInfo.Length() < 2) {
-    return util::UndefinedAndThrowError(env, "expected at least 2 arguments");
+  if (cbInfo.Length() < 3) {
+    return util::UndefinedAndThrowError(env, "expected at least 3 arguments");
   }
 
-  // Check the first argument
+  // Check the url argument
   if (!cbInfo[0].IsString()) {
     return util::UndefinedAndThrowError<Napi::TypeError>(
         env, "expected first argument to be a string");
   }
   auto url = cbInfo[0].As<Napi::String>();
 
-  // Check the second argument
-  if (!cbInfo[1].IsBuffer()) {
+  // Check the callback scheme argument
+  if (!cbInfo[1].IsString()) {
+    return util::UndefinedAndThrowError<Napi::TypeError>(
+        env, "expected second argument to be a string");
+  }
+  auto callbackScheme = cbInfo[1].As<Napi::String>();
+
+  // Check the window handle argument
+  if (!cbInfo[2].IsBuffer()) {
     return util::UndefinedAndThrowError<Napi::TypeError>(
         env, "expected second argument to be a Buffer");
   }
-  auto windowHandle = cbInfo[1].As<Napi::Buffer<void*>>();
+  auto windowHandle = cbInfo[2].As<Napi::Buffer<void*>>();
 
   // Call the impl and then handle the result
   auto promise = Napi::Promise::Deferred::New(env);
-  impl::PromptAuthentication(std::move(url), std::move(windowHandle), env,
-                             promise);
+  impl::PromptAuthentication(std::move(url), std::move(callbackScheme),
+                             std::move(windowHandle), env, promise);
 
   return Napi::Value::From(env, promise.Promise());
 }
