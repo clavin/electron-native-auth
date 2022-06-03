@@ -7,7 +7,14 @@
 @interface PresentationContextProvider
     : NSObject <ASWebAuthenticationPresentationContextProviding>
 
-@property(nonatomic, assign) NSView* presentationContext;
+/**
+ * Maybe an `NSView*` that corresponds to the `contentView` of an `NSWindow`.
+ *
+ * NOTE: Even if this property is set, it is not guaranteed that this points to
+ * a valid Objecive-C object, much less anything at all! Avoid using this as the
+ * object of a message (not even `- isKindOfClass:`) so there are no crashes.
+ */
+@property(nonatomic, assign) NSView* _Nullable targetContentViewMaybe;
 
 @end
 
@@ -16,13 +23,13 @@
 - (ASPresentationAnchor)presentationAnchorForWebAuthenticationSession:
     (ASWebAuthenticationSession*)session API_AVAILABLE(macos(10.15)) {
   // Ensure that there is a context associated with this object
-  if (self.presentationContext == NULL) {
+  if (self.targetContentViewMaybe == NULL) {
     return NULL;
   }
 
   // Attempt to find the NSWindow for the associated presentation context view
   for (NSWindow* window in [NSApp orderedWindows]) {
-    if ([window contentView] == self.presentationContext) {
+    if ([window contentView] == self.targetContentViewMaybe) {
       return window;
     }
   }
@@ -91,7 +98,7 @@ void PromptAuthentication(Napi::String url,
               return;
             }
 
-            // Handle error
+            // Handle errors
             if (error != NULL) {
               auto err = Napi::Error::New(env);
 
@@ -103,7 +110,6 @@ void PromptAuthentication(Napi::String url,
 
               // Reject with the error
               blockPromise.Reject(err.Value());
-
               return;
             } else {
               util::RejectWithError(env, blockPromise, err::kUnknownError);
@@ -125,10 +131,8 @@ void PromptAuthentication(Napi::String url,
       // expect it to be
       NSView* windowView = *reinterpret_cast<NSView**>(windowHandle.Data());
 
-      // Sanity check that this is a valid object of the right kind at least
-      if ([windowView isKindOfClass:[NSView class]]) {
-        ctxPvdr.presentationContext = windowView;
-      }
+      // Set the *potential* window content view pointer on the context provider
+      ctxPvdr.targetContentViewMaybe = windowView;
     }
 
     // Set the presentation context provider on the auth session
