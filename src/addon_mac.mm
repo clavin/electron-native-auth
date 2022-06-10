@@ -317,6 +317,21 @@ void AuthRequest::OnComplete(NSURL* _Nullable callbackURL,
   // Mark this request as finished
   state_ = AuthRequestState::Finished;
 
+  // Handle errors
+  if (error != nullptr) {
+    // Reject with an error that includes information in the NSError
+    auto err = Napi::Error::New(env_, [[error description] UTF8String]);
+    err.Set("code", Napi::Number::New(env_, [error code]));
+
+    // Just in case the extra info is useful
+    if (callbackURL != nullptr) {
+      err.Set("info", [[callbackURL absoluteString] UTF8String]);
+    }
+
+    promise_.Reject(err.Value());
+    return;
+  }
+
   // If we got a callback url, resolve with that
   if (callbackURL != nullptr) {
     promise_.Resolve(
@@ -324,23 +339,13 @@ void AuthRequest::OnComplete(NSURL* _Nullable callbackURL,
     return;
   }
 
-  // Handle errors
-  if (error != nullptr) {
-    // Reject with an error that includes information in the NSError
-    auto err = Napi::Error::New(env_, [[error description] UTF8String]);
-    err.Set("code", Napi::Number::New(env_, [error code]));
-
-    promise_.Reject(err.Value());
-    return;
-  } else {
-    // Something has gone wrong, but still reject anyways
-    promise_.Reject(
-        Napi::Error::New(
-            env_,
-            "the request was completed, but returned no callback url nor error")
-            .Value());
-    return;
-  }
+  // Something has gone wrong, but still reject anyways
+  promise_.Reject(
+      Napi::Error::New(
+          env_,
+          "the request was completed, but returned no callback url nor error")
+          .Value());
+  return;
 }
 
 Napi::Object Init(Napi::Env env, Napi::Object exports) {
