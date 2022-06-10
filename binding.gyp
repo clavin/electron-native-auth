@@ -2,10 +2,6 @@
   'targets': [
     {
       'target_name': 'electron_native_auth',
-      'sources': [
-        'src/addon.cc',
-        'src/impl_errs.cc'
-      ],
       'include_dirs': [
         "<!@(node -p \"require('node-addon-api').include\")",
       ],
@@ -20,7 +16,7 @@
         [
           'OS=="mac"',
           {
-            'sources': ['src/impl_mac.mm'],
+            'sources': ['src/addon_mac.mm'],
             'xcode_settings': {
               'OTHER_LDFLAGS': ['-framework AuthenticationServices'],
               'GCC_GENERATE_DEBUGGING_SYMBOLS': 'YES',
@@ -29,7 +25,7 @@
           },
           # else
           {
-            'sources': ['src/impl_none.cc'],
+            'sources': ['src/addon_none.cc'],
           }
         ],
       ],
