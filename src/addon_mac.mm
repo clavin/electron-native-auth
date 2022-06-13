@@ -266,6 +266,9 @@ Napi::Value AuthRequest::Start(const Napi::CallbackInfo& info) {
         env, "this auth request is in an invalid state, cannot be started");
   }
 
+  // Create the promise we'll return
+  promise_ = Napi::Promise::Deferred::New(env);
+
   // Attempt to start the web auth session
   state_ = AuthRequestState::Started;
   auto started = [webAuthSess_.get() start];
