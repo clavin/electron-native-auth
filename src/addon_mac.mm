@@ -129,6 +129,7 @@ class API_AVAILABLE(macos(10.15)) AuthRequest
   ns_ref<ASWebAuthenticationSession> webAuthSess_;
   Napi::Env env_;
   Napi::Promise::Deferred promise_;
+  Napi::ObjectReference selfRef_;
   AuthRequestState state_;
 
   void OnComplete(NSURL* _Nullable callbackURL, NSError* _Nullable error);
@@ -219,6 +220,9 @@ AuthRequest::AuthRequest(const Napi::CallbackInfo& info)
   auto windowHandle = comp_only_ref<NSView>(*windowHandleBuf.Data());
   // windowHandle is valid for comparisons!
 
+  // Create a reference to the new instance of this class, initially weak
+  selfRef_ = Napi::ObjectReference::New(info.This().As<Napi::Object>(), 0);
+
   // Create the web auth session
   auto webAuthSess = [ASWebAuthenticationSession alloc];
   // We store a pointer to the web auth session object as a block variable
@@ -234,6 +238,8 @@ AuthRequest::AuthRequest(const Napi::CallbackInfo& info)
         dispatch_sync(dispatch_get_main_queue(), ^{
           if (completionVerificationHandle == webAuthSess_.get()) {
             OnComplete(callbackURL, error);
+          } else {
+            NSLog(@"WARNING WARNING: object gc'd before completion :(");
           }
         });
       }]);
@@ -269,6 +275,9 @@ Napi::Value AuthRequest::Start(const Napi::CallbackInfo& info) {
   // Create the promise we'll return
   promise_ = Napi::Promise::Deferred::New(env);
 
+  // Also make the reference to this object strong
+  selfRef_.Ref();
+
   // Attempt to start the web auth session
   state_ = AuthRequestState::Started;
   auto started = [webAuthSess_.get() start];
@@ -280,7 +289,8 @@ Napi::Value AuthRequest::Start(const Napi::CallbackInfo& info) {
   }
 
   // Double check that the state is still initialized, it may have been changed
-  // synchronously by `-start`.
+  // synchronously by `-start`. If this is the case, then the promise was
+  // already rejected and is safe to return here.
   if (state_ != AuthRequestState::Initialized) {
     return promise_.Promise();
   }
@@ -303,6 +313,10 @@ Napi::Value AuthRequest::Cancel(const Napi::CallbackInfo& info) {
         env, "this auth request has not been started, cannot be canceled");
   }
 
+  // Make our reference to this object weak again since we're no longer in a
+  // request
+  selfRef_.Unref();
+
   // Mark this request canceled.
   state_ = AuthRequestState::Canceled;
   return env.Undefined();
@@ -316,6 +330,10 @@ void AuthRequest::OnComplete(NSURL* _Nullable callbackURL,
   }
 
   Napi::HandleScope handleScope(env_);
+
+  // Make our reference to this object weak again since we're no longer in a
+  // request
+  selfRef_.Unref();
 
   // Mark this request as finished
   state_ = AuthRequestState::Finished;
