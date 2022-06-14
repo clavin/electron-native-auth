@@ -2,7 +2,7 @@ export class AuthRequest {
   constructor(params: {
     url: string;
     callbackScheme: string;
-    windowHandle: import("node:buffer").Buffer;
+    windowHandle: Buffer;
   });
   static isAvailable(): boolean;
   start(): Promise<string>;
