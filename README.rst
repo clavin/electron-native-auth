@@ -73,11 +73,9 @@ Cancels an in-flight authentication request.
 Supported Platforms
 ===================
 
-========== =========== ===========================
- Platform   Supported   API
-========== =========== ===========================
-macOS      ✅ 10.15+    ASWebAuthenticationSession_
-Windows    ❌
-Linux      ❌
+* **macOS**: ✅ 10.15+
+  * Implemented using ASWebAuthenticationSession_
+* **Windows**: ❌
+* **Linux**: ❌
 
 .. _ASWebAuthenticationSession: https://developer.apple.com/documentation/authenticationservices/aswebauthenticationsession
