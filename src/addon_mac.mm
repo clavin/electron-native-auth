@@ -72,7 +72,7 @@ class comp_only_ref {
 @implementation AuthReqPresentationContextProvider
 
 - (ASPresentationAnchor)presentationAnchorForWebAuthenticationSession:
-    (ASWebAuthenticationSession*)session API_AVAILABLE(macos(10.15)) {
+    (ASWebAuthenticationSession*)session {
   // Ensure that there is a target view associated with this object
   if (self.targetContentViewMaybe == nullptr) {
     return nullptr;
@@ -115,8 +115,7 @@ enum class AuthRequestState {
 /**
  * A request for authentication.
  */
-class API_AVAILABLE(macos(10.15)) AuthRequest
-    : public Napi::ObjectWrap<AuthRequest> {
+class AuthRequest : public Napi::ObjectWrap<AuthRequest> {
  public:
   static Napi::Function ClassDef(Napi::Env env);
   static Napi::Value IsAvailable(const Napi::CallbackInfo& info);
@@ -147,7 +146,7 @@ Napi::Function AuthRequest::ClassDef(Napi::Env env) {
 }
 
 Napi::Value AuthRequest::IsAvailable(const Napi::CallbackInfo& info) {
-  return Napi::Boolean::New(info.Env(), @available(macOS 10.15, *));
+  return Napi::Boolean::New(info.Env(), true);
 }
 
 AuthRequest::AuthRequest(const Napi::CallbackInfo& info)
