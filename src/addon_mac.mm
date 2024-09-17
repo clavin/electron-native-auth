@@ -312,12 +312,15 @@ Napi::Value AuthRequest::Cancel(const Napi::CallbackInfo& info) {
         env, "this auth request has not been started, cannot be canceled");
   }
 
+  // Mark this request canceled.
+  state_ = AuthRequestState::Canceled;
+  [webAuthSess_.get() cancel];
+  promise_.Reject(Napi::Error::New(env, "canceled").Value());
+
   // Make our reference to this object weak again since we're no longer in a
   // request
   selfRef_.Unref();
 
-  // Mark this request canceled.
-  state_ = AuthRequestState::Canceled;
   return env.Undefined();
 }
 
