@@ -9,11 +9,11 @@
     "build": "node-gyp rebuild",
     "clean": "node-gyp clean",
     "test": "jest",
-    "gen-compile-cmds": "node-gyp -- configure -f=gyp.generator.compile_commands_json.py && mv ./build/Debug/compile_commands.json ./compile_commands.json"
+    "gen-compile-cmds": "node-gyp -- configure -f=gyp.generator.compile_commands_json.py && cp ./build/Debug/compile_commands.json ./compile_commands.json"
   },
   "dependencies": {
     "bindings": "^1.5.0",
-    "node-addon-api": "^5.0.0"
+    "node-addon-api": "^8.1.0"
   },
   "devDependencies": {
     "@types/node": "*",

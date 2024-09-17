@@ -2,32 +2,30 @@
   'targets': [
     {
       'target_name': 'electron_native_auth',
-      'include_dirs': [
-        "<!@(node -p \"require('node-addon-api').include\")",
-      ],
       'dependencies': [
-        "<!(node -p \"require('node-addon-api').gyp\")",
-      ],
-      'defines': [
-        'NAPI_DISABLE_CPP_EXCEPTIONS',
-        'NODE_ADDON_API_ENABLE_MAYBE',
+        "<!(node -p \"require('node-addon-api').targets\"):node_addon_api_maybe",
       ],
       'conditions': [
-        [
-          'OS=="mac"',
-          {
-            'sources': ['src/addon_mac.mm'],
-            'xcode_settings': {
-              'OTHER_LDFLAGS': ['-framework AuthenticationServices'],
-              'GCC_GENERATE_DEBUGGING_SYMBOLS': 'YES',
-              "DEBUG_INFORMATION_FORMAT": "dwarf-with-dsym",
-            },
-          },
-          # else
-          {
-            'sources': ['src/addon_none.cc'],
+        # https://github.com/nodejs/node-addon-api/blob/294a43f8c6a4c79b3295a8f1b83d4782d44cfe74/doc/setup.md
+        ['OS=="mac"', {
+          'cflags+': ['-fvisibility=hidden'],
+          'xcode_settings': {
+            'GCC_SYMBOLS_PRIVATE_EXTERN': 'YES', # -fvisibility=hidden
           }
-        ],
+        }],
+        ['OS=="mac"', {
+          'sources': ['src/addon_mac.mm'],
+          'xcode_settings': {
+            'OTHER_CFLAGS': ['-mmacos-version-min=10.15'],
+            'OTHER_LDFLAGS': ['-framework AuthenticationServices'],
+            'GCC_GENERATE_DEBUGGING_SYMBOLS': 'YES',
+            'DEBUG_INFORMATION_FORMAT': 'dwarf-with-dsym',
+          },
+        },
+        # else
+        {
+          'sources': ['src/addon_none.cc'],
+        }],
       ],
     },
   ],
