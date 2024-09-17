@@ -1,7 +1,8 @@
-#include <napi.h>
-#include "js_native_api_types.h"
+#include <vector>
+#include "napi.h"
 
 #import <AuthenticationServices/AuthenticationServices.h>
+#include <Foundation/Foundation.h>
 
 /**
  * Holds a reference to an NSObject (or subclass of it), calling `-release` on
@@ -164,10 +165,10 @@ AuthRequest::AuthRequest(const Napi::CallbackInfo& info)
   auto paramsObj = info[0].As<Napi::Object>();
 
   // Verify and coerce the url parameter into an NSURL
-  Napi::Value urlParamValue;
-  if (!paramsObj.Get("url").UnwrapTo(&urlParamValue)) {
+  if (!paramsObj.Has("url")) {
     THROW_TYPE_ERR_AND_RETURN(env, "expected parameter 'url'");
   }
+  Napi::Value urlParamValue = paramsObj.Get("url");
   if (!urlParamValue.IsString()) {
     THROW_TYPE_ERR_AND_RETURN(env, "expected parameter 'url' to be a string");
   }
@@ -184,10 +185,10 @@ AuthRequest::AuthRequest(const Napi::CallbackInfo& info)
   // urlNSURL is valid!
 
   // Verify and coerce the callback url scheme
-  Napi::Value cbSchemeParamValue;
-  if (!paramsObj.Get("callbackScheme").UnwrapTo(&cbSchemeParamValue)) {
+  if (!paramsObj.Has("callbackScheme")) {
     THROW_TYPE_ERR_AND_RETURN(env, "expected parameter 'callbackScheme'");
   }
+  Napi::Value cbSchemeParamValue = paramsObj.Get("callbackScheme");
   if (!cbSchemeParamValue.IsString()) {
     THROW_TYPE_ERR_AND_RETURN(
         env, "expected parameter 'callbackScheme' to be a string");
@@ -202,10 +203,10 @@ AuthRequest::AuthRequest(const Napi::CallbackInfo& info)
   // cbSchemeNSStr is valid!
 
   // Verify and coerce the window handle
-  Napi::Value windowHandleParamValue;
-  if (!paramsObj.Get("windowHandle").UnwrapTo(&windowHandleParamValue)) {
+  if (!paramsObj.Has("windowHandle")) {
     THROW_TYPE_ERR_AND_RETURN(env, "expected parameter 'windowHandle'");
   }
+  Napi::Value windowHandleParamValue = paramsObj.Get("windowHandle");
   if (!windowHandleParamValue.IsBuffer()) {
     THROW_TYPE_ERR_AND_RETURN(
         env, "expected parameter 'windowHandle' to be a buffer");
@@ -219,29 +220,73 @@ AuthRequest::AuthRequest(const Napi::CallbackInfo& info)
   auto windowHandle = comp_only_ref<NSView>(*windowHandleBuf.Data());
   // windowHandle is valid for comparisons!
 
+  // Verify and coerce the headers
+  std::vector<NSString*> header_keys;
+  std::vector<NSString*> header_values;
+  if (paramsObj.Has("headers")) {
+    Napi::Value headersParamValue = paramsObj.Get("headers");
+    if (!headersParamValue.IsObject()) {
+      THROW_TYPE_ERR_AND_RETURN(env,
+                                "expected parameter 'headers' to be an object");
+    }
+    auto headersParamObj = headersParamValue.As<Napi::Object>();
+    for (auto [key, lvalue] : headersParamObj) {
+      // Only keep own properties that are strings
+      if (!key.IsString() || !headersParamObj.HasOwnProperty(key)) {
+        continue;
+      }
+
+      auto key_str = key.ToString().Utf8Value();
+      auto value = Napi::Value(lvalue);
+      if (!value.IsString()) {
+        THROW_TYPE_ERR_AND_RETURN(env, std::string("header '")
+                                           .append(key_str)
+                                           .append("' has non-string value"));
+      }
+
+      auto value_str = value.ToString().Utf8Value();
+
+      header_keys.push_back([NSString stringWithUTF8String:key_str.c_str()]);
+      header_values.push_back(
+          [NSString stringWithUTF8String:value_str.c_str()]);
+    }
+  }
+  // headers have been verified and filled!
+
   // Create a reference to the new instance of this class, initially weak
   selfRef_ = Napi::ObjectReference::New(info.This().As<Napi::Object>(), 0);
 
-  // Create the web auth session
-  auto webAuthSess = [ASWebAuthenticationSession alloc];
-  // We store a pointer to the web auth session object as a block variable
-  // so we can later compare it during completion to verify that this object is
-  // still valid, just in case.
-  __block comp_only_ref<ASWebAuthenticationSession>
-      completionVerificationHandle(webAuthSess);
-  webAuthSess_ = ns_ref<ASWebAuthenticationSession>([webAuthSess
-            initWithURL:urlNSURL
-      callbackURLScheme:cbSchemeNSStr
-      completionHandler:^(NSURL* _Nullable callbackURL,
-                          NSError* _Nullable error) {
-        dispatch_sync(dispatch_get_main_queue(), ^{
-          if (completionVerificationHandle == webAuthSess_.get()) {
-            OnComplete(callbackURL, error);
-          } else {
-            NSLog(@"WARNING WARNING: object gc'd before completion :(");
-          }
-        });
-      }]);
+  {
+    // Create the web auth session
+    auto webAuthSess = [ASWebAuthenticationSession alloc];
+    // We store a pointer to the web auth session object as a block variable
+    // so we can later compare it during completion to verify that this object
+    // is still valid, just in case.
+    __block comp_only_ref<ASWebAuthenticationSession>
+        completionVerificationHandle(webAuthSess);
+    ASWebAuthenticationSessionCompletionHandler completionHandler = ^(
+        NSURL* _Nullable callbackURL, NSError* _Nullable error) {
+      dispatch_sync(dispatch_get_main_queue(), ^{
+        if (completionVerificationHandle == webAuthSess_.get()) {
+          OnComplete(callbackURL, error);
+        } else {
+          NSLog(@"WARNING: ASWebAuthenticationSession gc'd before completion");
+        }
+      });
+    };
+    if (@available(macos 14.4, *)) {
+      webAuthSess_ = ns_ref<ASWebAuthenticationSession>([webAuthSess
+                initWithURL:urlNSURL
+                   callback:[ASWebAuthenticationSessionCallback
+                                callbackWithCustomScheme:cbSchemeNSStr]
+          completionHandler:completionHandler]);
+    } else {
+      webAuthSess_ = ns_ref<ASWebAuthenticationSession>([webAuthSess
+                initWithURL:urlNSURL
+          callbackURLScheme:cbSchemeNSStr
+          completionHandler:completionHandler]);
+    }
+  }
 
   // Set the presentation context provider on the web auth sess
   auto authReqPresentationCtxPvdr = [AuthReqPresentationContextProvider new];
@@ -249,6 +294,20 @@ AuthRequest::AuthRequest(const Napi::CallbackInfo& info)
       setTargetContentViewMaybe:std::move(windowHandle)];
   [webAuthSess_.get()
       setPresentationContextProvider:authReqPresentationCtxPvdr];
+
+  // Convert and assign the headers
+  if (!header_keys.empty()) {
+    [webAuthSess_.get()
+        setAdditionalHeaderFields:
+            [NSDictionary
+                dictionaryWithObjects:[NSArray
+                                          arrayWithObjects:header_values.data()
+                                                     count:header_values.size()]
+                              forKeys:[NSArray
+                                          arrayWithObjects:header_keys.data()
+                                                     count:header_keys
+                                                               .size()]]];
+  }
 
   // Done for now, the session can be started in |Start|.
   state_ = AuthRequestState::Initialized;

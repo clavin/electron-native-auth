@@ -40,10 +40,11 @@ Indicates if this API is available on the current platform. This method is alway
 Initializes, but does not start, an authentication request. A request can be started and later cancelled.
 
 - **Parameters**:
-  - An options `object`:
-    - `url`: The URL as a `string` to authenticate to.
-    - `callbackScheme`: The URL scheme as a `string` that the callback is expected to have.
-    - `windowHandle`: A `Buffer` containing the native OS window handle for the window requesting authentication. Used when the OS prompts the user for authentication.
+  - Options (`object`):
+    - `url` (`string`): The URL to authenticate to.
+    - `callbackScheme` (`string`): The URL scheme (as in `scheme://...`) that the callback is expected to have.
+    - `windowHandle` (`Buffer`): The native OS window handle for the window requesting authentication. Used when the OS prompts the user for authentication.
+    - `headers` (`{ [header: string]: string }`, optional, macOS 14.4+): Headers and their values to add to HTTP requests sent during the authentication session.
 
 #### Method: `start()`
 
@@ -61,7 +62,9 @@ Cancels the authentication request.
 
 ## Supported Platforms
 
-* macOS: ✅ 10.15+
+* macOS: ✅
+  * Runtime: 10.15+
+  * Xcode SDK: 16+
   * Uses [ASWebAuthenticationSession](https://developer.apple.com/documentation/authenticationservices/aswebauthenticationsession)
 * Windows: ❌
 * Linux: ❌

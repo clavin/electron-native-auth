@@ -3,7 +3,7 @@
     {
       'target_name': 'electron_native_auth',
       'dependencies': [
-        "<!(node -p \"require('node-addon-api').targets\"):node_addon_api_maybe",
+        "<!(node -p \"require('node-addon-api').targets\"):node_addon_api_except",
       ],
       'conditions': [
         # https://github.com/nodejs/node-addon-api/blob/294a43f8c6a4c79b3295a8f1b83d4782d44cfe74/doc/setup.md
