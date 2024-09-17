@@ -20,9 +20,7 @@ if (AuthRequest.isAvailable()) {
     windowHandle: myBrowserWindow.getNativeWindowHandle(),
   });
 
-  await req.start();
-
-  // Recieve the callback using Electron's `protocol` module
+  const result = await req.start();
 } else {
   console.error("Native auth request unavailable :(");
 }
@@ -42,7 +40,7 @@ Initializes, but does not start, an authentication request. A request can be sta
 - **Parameters**:
   - Options (`object`):
     - `url` (`string`): The URL to authenticate to.
-    - `callbackScheme` (`string`): The URL scheme (as in `scheme://...`) that the callback is expected to have.
+    - `callbackScheme` (`string`): The URL scheme (the part before `://`) that the callback is expected to have.
     - `windowHandle` (`Buffer`): The native OS window handle for the window requesting authentication. Used when the OS prompts the user for authentication.
     - `headers` (`{ [header: string]: string }`, optional, macOS 14.4+): Headers and their values to add to HTTP requests sent during the authentication session.
 
@@ -58,7 +56,7 @@ Begins the request to authenticate.
 Cancels the authentication request.
 
 - **Parameters**: None.
-- **Returns**: A `Promise` that resolves (with `undefined`) when the request has been cancelled.
+- **Returns**: Nothing.
 
 ## Supported Platforms
 
