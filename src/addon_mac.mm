@@ -296,17 +296,20 @@ AuthRequest::AuthRequest(const Napi::CallbackInfo& info)
       setPresentationContextProvider:authReqPresentationCtxPvdr];
 
   // Convert and assign the headers
-  if (!header_keys.empty()) {
-    [webAuthSess_.get()
-        setAdditionalHeaderFields:
-            [NSDictionary
-                dictionaryWithObjects:[NSArray
-                                          arrayWithObjects:header_values.data()
-                                                     count:header_values.size()]
-                              forKeys:[NSArray
-                                          arrayWithObjects:header_keys.data()
-                                                     count:header_keys
-                                                               .size()]]];
+  if (@available(macos 14.4, *)) {
+    if (!header_keys.empty()) {
+      [webAuthSess_.get()
+          setAdditionalHeaderFields:
+              [NSDictionary
+                  dictionaryWithObjects:[NSArray arrayWithObjects:header_values
+                                                                      .data()
+                                                            count:header_values
+                                                                      .size()]
+                                forKeys:[NSArray
+                                            arrayWithObjects:header_keys.data()
+                                                       count:header_keys
+                                                                 .size()]]];
+    }
   }
 
   // Done for now, the session can be started in |Start|.
