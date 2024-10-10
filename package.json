@@ -2,7 +2,10 @@
   "name": "electron-native-auth",
   "version": "0.2.0",
   "main": "index.js",
-  "repository": "https://github.com/clavin/electron-native-auth",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/clavin/electron-native-auth.git"
+  },
   "author": "Calvin Watford",
   "license": "MIT",
   "scripts": {
